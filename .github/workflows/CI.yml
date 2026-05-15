@@ -62,7 +62,7 @@ jobs:
           arch: ${{ matrix.arch }}
 
       # Cache, build, and test
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
 
       # Install specific package versions
       - name: Install specific PowerSimulations and StorageSystemsSimulations commits
