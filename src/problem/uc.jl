@@ -38,6 +38,7 @@ function build_problem_base_uc(;network_model=NFAPowerModel)
     )
 
     # services
+    # TODO: support minimum number of synchronous generators online.
     # 
     # export ServiceModel
     # export RangeReserve

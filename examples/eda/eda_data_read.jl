@@ -29,11 +29,12 @@ nem_reliability_data_dir = joinpath(@__DIR__, "../../..", "NEM-reliability-suite
 pisp_data_dir = joinpath(nem_reliability_data_dir, "data/pisp-datasets/out-ref4006-poe10")
 arrow_dir = joinpath(pisp_data_dir, "arrow")
 system_data_dir = arrow_dir
-schedule_names = filter(
-    name -> startswith(name, "schedule-"),
-    readdir(arrow_dir)
-)
-schedule_name = schedule_names[1]
+# schedule_names = filter(
+#     name -> startswith(name, "schedule-"),
+#     readdir(arrow_dir)
+# )
+# schedule_name = schedule_names[1]
+schedule_name = "schedule-2038"
 
 ts_data_dir = joinpath(system_data_dir, schedule_name)
 scenario = 1

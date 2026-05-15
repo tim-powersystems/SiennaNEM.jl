@@ -83,9 +83,16 @@ Pkg.develop(path="../PISP.jl")
 ```
 
 Currently, there is a bug in using `MonitoredLine` that support different
-forward and backward flow. See this
-[PR](https://github.com/NREL-Sienna/PowerSimulations.jl/pull/1596). A temporary
-solution is to clone and install that PR locally with `Pkg.develop`.
+forward and backward flow. See this merged
+[PR](https://github.com/NREL-Sienna/PowerSimulations.jl/pull/1596). Although it
+is already merged, the newer version of `PowerSimulations` does not support
+`HydroPowerSimulations` and `StorageSystemsSimulations` due to update in 
+`InfrastructureSystems`. A temporary solution is to use:
+
+```julia
+Pkg.add(url="https://github.com/Sienna-Platform/PowerSimulations.jl.git",
+        rev="42d1e53b98ad0b73f837c230a12af7f6ed685d79")
+```
 
 ### Add data
 

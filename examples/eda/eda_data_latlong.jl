@@ -1,4 +1,5 @@
 using DataFrames, CSV
+using SiennaNEM
 
 """
 This script require `get_data`:
@@ -6,9 +7,50 @@ This script require `get_data`:
 data = SiennaNEM.get_data(system_data_dir, ts_data_dir)
 """
 
+"""
+    add_area_data_col!(
+    df, area_df;
+    id_area_col=:id_area,
+    area_name_col=:area_name,
+    area_df_id=:id_area,
+    area_df_name=:name,
+)
+
+Add an `area_name` column to `df` by matching `df[id_area_col]` with `area_df[area_df_id]`
+and using `area_df[area_df_name]` as the label.
+
+- Requires `df` to already have `id_area_col`.
+- Throws if an `id_area` in `df` is not present in `area_df`.
+"""
+function add_area_data_col!(
+    df, map;
+    id_area_col::Symbol=:id_area,
+    data_col::Symbol=:area_name,
+)
+    # NOTE: area_to_name is a constant from SiennaNEM.const
+    df[!, data_col] = [map[id] for id in df[!, id_area_col]]
+end
+
 cols = [:tech, :type, :DataType, :PrimeMovers, :ThermalFuels]
 df_bus = data["bus"]
-show(df_bus[:, [:id_bus, :name, :latitude, :longitude]], allrows=true)
+add_area_data_col!(df_bus, SiennaNEM.area_to_name; data_col=:area_name)
+show(df_bus[:, [:id_bus, :name, :area_name, :latitude, :longitude]], allrows=true)
+# 12×5 DataFrame
+#  Row │ id_bus  name    area_name  latitude  longitude 
+#      │ Int64   String  String     Float64   Float64   
+# ─────┼────────────────────────────────────────────────
+#    1 │      1  NQ      QLD        -17.7938    145.564
+#    2 │      2  CQ      QLD        -22.8242    149.404
+#    3 │      3  GG      QLD        -23.8429    151.249
+#    4 │      4  SQ      QLD        -27.4766    153.03
+#    5 │      5  NNSW    NSW        -30.5047    151.652
+#    6 │      6  CNSW    NSW        -33.4833    150.158
+#    7 │      7  SNW     NSW        -33.865     151.209
+#    8 │      8  SNSW    NSW        -35.111     147.36
+#    9 │      9  VIC     VIC        -37.7661    144.943
+#   10 │     10  TAS     TAS        -42.8806    147.325
+#   11 │     11  CSA     SA         -34.8027    138.522
+#   12 │     12  SESA    SA         -37.6047    140.837
 
 function fill_latlong_from_bus!(df::DataFrame, df_bus::DataFrame)
     # Create a lookup dict from bus id to lat/long

@@ -2,6 +2,7 @@ using DataFrames
 using Plots
 using Dates
 
+## Plot similar to dataset style, not time vs capacity
 tas = 0.0:0.5:50.0
 
 line_df =
@@ -50,24 +51,25 @@ function df_to_series(cap_df, line_df, tas)
     series
 end
 
-ta_df = make_ta_grid(line_df, tas)
+ta_range_df = make_ta_grid(line_df, tas)
 
-cap_fwcap_df = get_branch_thermal_capacity(
-    ta_df, line_df,
-    (:tref_winter, :tref_summer, :tref_peak_demand,
-     :fwcap, :fwcap_summer, :fwcap_peak_demand,
-     :tm1_fwcap, :tm2_fwcap, :tm3_fwcap)
+fwcap_sched_df = get_branch_thermal_capacity(
+    ta_range_df, line_df,
+    (:tref_summer, :tref_peak_demand,
+     :fwcap_summer, :fwcap_peak_demand,
+     :tm2_fwcap, :tm3_fwcap);
+     notconstrained_lines=forward_thermal_notconstrained
 )
 
-cap_rvcap_df = get_branch_thermal_capacity(
-    ta_df, line_df,
-    (:tref_winter, :tref_summer, :tref_peak_demand,
-     :rvcap, :rvcap_summer, :rvcap_peak_demand,
-     :tm1_rvcap, :tm2_rvcap, :tm3_rvcap)
+rvcap_sched_df = get_branch_thermal_capacity(
+    ta_range_df, line_df,
+    (:tref_summer, :tref_peak_demand,
+     :fwcap_summer, :fwcap_peak_demand,
+     :tm2_fwcap, :tm3_fwcap);
+     notconstrained_lines=forward_thermal_notconstrained
 )
-
-cap_fwd = df_to_series(cap_fwcap_df, line_df, tas)
-cap_rev = df_to_series(cap_rvcap_df, line_df, tas)
+cap_fwd = df_to_series(fwcap_sched_df, line_df, tas)
+cap_rev = df_to_series(rvcap_sched_df, line_df, tas)
 
 norm_fwd = normalise_series(cap_fwd)
 norm_rev = normalise_series(cap_rev)
@@ -97,6 +99,7 @@ function make_plot(series_fwd, series_rev, labels, tas, ylabel, title_suffix; kw
         titlefontsize  = 10,
         xlims  = (first(tas), last(tas)),
         xticks = 0:5:50,
+        # yticks = 0:0.1:1.0,  use only on the normalized plot
         size   = (900, 420),
         grid   = true,
         gridalpha = 0.25,
@@ -105,16 +108,16 @@ function make_plot(series_fwd, series_rev, labels, tas, ylabel, title_suffix; kw
 
     x = collect(Float64.(tas))
 
-    p_fwd = plot(; base..., title = "Forward flow (fwcap) — $title_suffix", kwargs...)
+    p_fwd = Plots.plot(; base..., title = "Forward flow (fwcap) — $title_suffix", kwargs...)
     for (i, v) in enumerate(series_fwd)
         c, ls = style_at(i)
-        plot!(p_fwd, x, v; label=labels[i], color=c, linestyle=ls, linewidth=1.5)
+        Plots.plot!(p_fwd, x, v; label=labels[i], color=c, linestyle=ls, linewidth=1.5)
     end
 
-    p_rev = plot(; base..., title = "Reverse flow (rvcap) — $title_suffix", kwargs...)
+    p_rev = Plots.plot(; base..., title = "Reverse flow (rvcap) — $title_suffix", kwargs...)
     for (i, v) in enumerate(series_rev)
         c, ls = style_at(i)
-        plot!(p_rev, x, v; label=labels[i], color=c, linestyle=ls, linewidth=1.5)
+        Plots.plot!(p_rev, x, v; label=labels[i], color=c, linestyle=ls, linewidth=1.5)
     end
 
     p_fwd, p_rev
@@ -124,9 +127,11 @@ imgs_dir = "examples/result/eda"
 mkpath(imgs_dir)
 
 p1_fwd, p1_rev = make_plot(cap_fwd, cap_rev, labels, tas, "Capacity (MW)", "capacity (MW)"; ylims=(0, Inf))
-p_capacity = plot(p1_fwd, p1_rev; layout=(2, 1), size=(950, 860), dpi=150)
-savefig(p_capacity, joinpath(imgs_dir, "plot_branch_capacity_derating_thermal_functions.png"))
+p_capacity = Plots.plot(p1_fwd, p1_rev; layout=(2, 1), size=(950, 860), dpi=150)
+Plots.savefig(p_capacity, joinpath(imgs_dir, "plot_branch_capacity_derating_thermal_functions.png"))
 
 p2_fwd, p2_rev = make_plot(norm_fwd, norm_rev, labels, tas, "Normalised capacity (0–1)", "normalised capacity"; ylims=(0, 1.05))
-p_norm = plot(p2_fwd, p2_rev; layout=(2, 1), size=(950, 860), dpi=150)
-savefig(p_norm, joinpath(imgs_dir, "plot_branch_normalised_capacity_derating_thermal_functions.png"))
+p_norm = Plots.plot(p2_fwd, p2_rev; layout=(2, 1), size=(950, 860), dpi=150)
+Plots.savefig(p_norm, joinpath(imgs_dir, "plot_branch_normalised_capacity_derating_thermal_functions.png"))
+
+# TODO: plot actual fw and rv from ts
