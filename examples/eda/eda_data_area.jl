@@ -6,9 +6,11 @@ using SiennaNEM
 using CSV
 
 method_number = 3
-date_start = "20380120"
-date_end = "20380126"
+# date_start = "20380120"
+# date_end = "20380126"
 # era5_date = "20240213"
+date_start = "20400116"  # middle at 20400119
+date_end = "20400122"  # middle at 20400119
 era5_date = "20170210"
 window_name = "7d"
 

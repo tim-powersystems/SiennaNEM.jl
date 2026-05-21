@@ -1,6 +1,7 @@
 using DataFrames
 using CSV
 using Statistics
+using Dates
 
 vre_dir = joinpath(@__DIR__, "../../", "data", "out-ref4006-poe10", "csv")
 rez_mesh_file_name = "rez_mesh.csv"
@@ -134,12 +135,31 @@ function _format_aggregate_for_csv(
     cf_bus_mean::DataFrame,
     bus_to_idgen::Dict{Int,Int};
     drop_missing_idgen::Bool=true,
+    date_shift_days::Int=0,
 )
     # 1) collapse any extra grouping (e.g. id_rez/rez_name) down to bus
     bus_level = combine(
         groupby(cf_bus_mean, [:scenario, :date, :id_bus]),
         :cf_mean => mean => :value,
     )
+
+    # Keep original CSV-esque date string format, but allow shifting
+    if eltype(bus_level.date) <: AbstractString
+        fmt = dateformat"yyyy-mm-dd HH:MM:SS"
+        dt = DateTime.(String.(bus_level.date), fmt)
+
+        if date_shift_days != 0
+            dt = dt .+ Day(date_shift_days)
+        end
+
+        # convert back to the same string format for CSV output
+        bus_level.date = Dates.format.(dt, fmt)
+    else
+        # non-string dates: just shift (keeps DateTime/Date type)
+        if date_shift_days != 0
+            bus_level.date = bus_level.date .+ Day(date_shift_days)
+        end
+    end
 
     # 2) map bus -> id_gen (allow missing then drop)
     bus_level.id_gen = get.(Ref(bus_to_idgen), Int.(bus_level.id_bus), missing)
@@ -156,10 +176,15 @@ function _format_aggregate_for_csv(
     return out
 end
 
+# The date_shift_days is used to make the hot waves event align with demand data
+date_shift_days = 22
+
 ## Wind
 wind_bus_to_idgen = _bus_to_idgen_map(data["generator"], "Wind")
-rez_windcf_out = _format_aggregate_for_csv(rez_windcf_bus_mean, wind_bus_to_idgen; drop_missing_idgen=true)
-
+rez_windcf_out = _format_aggregate_for_csv(
+    rez_windcf_bus_mean, wind_bus_to_idgen;
+    drop_missing_idgen=true, date_shift_days=date_shift_days
+)
 CSV.write(
     joinpath(outdir, "Generator_cf_aggregate_wind-method$(method_number)-$(date_start)_$(date_end)-era5shape$(era5_date)_$(window_name)_AEST_sched_.csv"),
     rez_windcf_out
@@ -167,8 +192,10 @@ CSV.write(
 
 ## LargePV
 largepv_bus_to_idgen = _bus_to_idgen_map(data["generator"], "LargePV")
-rez_largepv_out = _format_aggregate_for_csv(rez_pvmodcf_largepv_bus_mean, largepv_bus_to_idgen; drop_missing_idgen=true)
-
+rez_largepv_out = _format_aggregate_for_csv(
+    rez_pvmodcf_largepv_bus_mean, largepv_bus_to_idgen;
+    drop_missing_idgen=true, date_shift_days=date_shift_days
+)
 CSV.write(
     joinpath(outdir, "Generator_cf_aggregate_largepv_pvmod-method$(method_number)-$(date_start)_$(date_end)-era5shape$(era5_date)_$(window_name)_AEST_sched_.csv"),
     rez_largepv_out
@@ -176,7 +203,10 @@ CSV.write(
 
 ## RoofPV
 roofpv_bus_to_idgen = _bus_to_idgen_map(data["generator"], "RoofPV")
-roofpv_out = _format_aggregate_for_csv(rooftop_pvmodcf_roofpv_bus_mean, roofpv_bus_to_idgen; drop_missing_idgen=true)
+roofpv_out = _format_aggregate_for_csv(
+    rooftop_pvmodcf_roofpv_bus_mean, roofpv_bus_to_idgen;
+    drop_missing_idgen=true, date_shift_days=date_shift_days
+)
 
 CSV.write(
     joinpath(outdir, "Generator_cf_aggregate_roofpv_pvmod-method$(method_number)-$(date_start)_$(date_end)-era5shape$(era5_date)_$(window_name)_AEST_sched_.csv"),

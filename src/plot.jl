@@ -1,3 +1,5 @@
+using PlotlyJS
+
 """
     plot_stacked_wide(df::DataFrame, id_to_name::Union{OrderedDict, Dict}; 
                       timecol::Symbol=:DateTime, title::String="Stacked Area Chart", 

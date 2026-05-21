@@ -39,11 +39,12 @@ system_data_dir = joinpath(
     @__DIR__, "../..", "NEM-reliability-suite", "data", "pisp-datasets",
     "out-ref$reference_trace-poe$poe", file_format
 )
-ts_data_dir = joinpath(system_data_dir, "schedule-$tyear")
+schedule_name = "schedule-$tyear"
+ts_data_dir = joinpath(system_data_dir, schedule_name)
 
 scenario = 1
-horizon = Hour(48)
-interval = Hour(24)
+horizon = Hour(12)
+interval = Hour(6)
 
 # data and system
 data = SiennaNEM.get_data(system_data_dir, ts_data_dir)
