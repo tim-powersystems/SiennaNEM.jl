@@ -1,6 +1,6 @@
 name = "SiennaNEM"
 uuid = "2b2140f2-b9c0-4054-8dfe-2e6bd74cbbbe"
-version = "0.0.6"
+version = "0.0.7"
 authors = ["Muhammad Yasirroni <yasirroni@users.noreply.github.com> and contributors"]
 
 [deps]
