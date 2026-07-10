@@ -4,9 +4,16 @@ using DataFrames
 using Dates
 
 
-@testset "Time Series Functions Tests" begin
-    system_data_dir = "../data/nem12/arrow"
-    ts_data_dir = joinpath(system_data_dir, "schedule-1w")
+@testset "Time Series Functions Tests" verbose=true begin
+    reference_trace = 4006
+    poe = 10
+    tyear = 2025
+    file_format = "arrow"
+    system_data_dir = joinpath(
+        @__DIR__, "../..", "NEM-reliability-suite", "data", "pisp-datasets",
+        "out-ref$reference_trace-poe$poe", file_format
+    )
+    ts_data_dir = joinpath(system_data_dir, "schedule-$tyear")
     data = read_system_data(system_data_dir)
     read_ts_data!(data, ts_data_dir)
 

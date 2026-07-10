@@ -1,11 +1,10 @@
-using Revise
 using SiennaNEM
 using PowerSimulations
 using HiGHS
 using Dates
 
 # Setup optimizer
-solver = optimizer_with_attributes(HiGHS.Optimizer, "mip_rel_gap" => 0.01)
+optimizer = optimizer_with_attributes(HiGHS.Optimizer, "mip_rel_gap" => 0.01)
 
 # Configuration
 system_data_dir = "data/nem12/arrow"
@@ -26,9 +25,9 @@ println("Years: $(first(years)) - $(last(years))")
 println("="^80)
 
 # Loop through each scenario first
-for scenario_name in scenarios
+for scenario in scenarios
     println("\n" * "█"^80)
-    println("Processing Scenario: $scenario_name")
+    println("Processing Scenario: $scenario")
     println("█"^80)
 
     # Then loop through each year
@@ -57,7 +56,7 @@ for scenario_name in scenarios
                 sys, data;
                 horizon=horizon,
                 interval=interval,
-                scenario_name=scenario_name,
+                scenario=scenario,
             )
             println("✓ System built successfully")
 
@@ -72,11 +71,11 @@ for scenario_name in scenarios
             # 3. RUN DECISION MODEL LOOP
             # ============================================================
             println("\n[3/5] Running decision model loop...")
-            res_dict = SiennaNEM.run_decision_model_loop(
+            res_dict = SiennaNEM.run_simulation(
                 template_uc, sys;
                 schedule_horizon=schedule_horizon,
                 window_shift=window_shift,
-                optimizer=solver,
+                optimizer=optimizer,
                 verbose=true,
             )
             println("✓ Decision model loop completed")
@@ -85,12 +84,12 @@ for scenario_name in scenarios
             # 4. EXTRACT AND EXPORT RESULTS
             # ============================================================
             println("\n[4/5] Extracting optimization results...")
-            dfs_res = SiennaNEM.get_problem_results(res_dict)
+            dfs_res = SiennaNEM.get_results_dataframes(res_dict)
 
             # Create output directories with scenario-{n}/schedule-{year} structure
-            output_prefix = "$(schedule_name)_scenario-$(scenario_name)"
-            csv_dir = joinpath(base_output_dir, "csv", schedule_name, "scenario-$(scenario_name)")
-            # plots_dir = joinpath(base_output_dir, "plots", schedule_name, "scenario-$(scenario_name)")
+            output_prefix = "$(schedule_name)_scenario-$(scenario)"
+            csv_dir = joinpath(base_output_dir, "csv", schedule_name, "scenario-$(scenario)")
+            # plots_dir = joinpath(base_output_dir, "plots", schedule_name, "scenario-$(scenario)")
 
             println("\n[5/5] Exporting results...")
 
@@ -102,10 +101,10 @@ for scenario_name in scenarios
                 prefix=output_prefix
             )
 
-            println("\n✓ Successfully completed: $scenario_name, $schedule_name")
+            println("\n✓ Successfully completed: $scenario, $schedule_name")
 
         catch e
-            @error "Failed to process $scenario_name, $schedule_name" exception = (e, catch_backtrace())
+            @error "Failed to process $scenario, $schedule_name" exception = (e, catch_backtrace())
             continue
         end
     end

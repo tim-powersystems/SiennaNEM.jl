@@ -1,4 +1,3 @@
-using Revise
 using SiennaNEM
 using Dates
 
@@ -7,7 +6,7 @@ using PowerSimulations
 using HiGHS
 
 # setup optimizer
-solver = optimizer_with_attributes(HiGHS.Optimizer, "mip_rel_gap" => 0.01)
+optimizer = optimizer_with_attributes(HiGHS.Optimizer, "mip_rel_gap" => 0.01)
 
 # NOTE:
 #   The `horizon = Hour(T)` parameter defines the optimization window span of T
@@ -29,18 +28,23 @@ solver = optimizer_with_attributes(HiGHS.Optimizer, "mip_rel_gap" => 0.01)
 #   - Smaller interval: More frequent re-optimization and overlapping solutions,
 #     but have more flexibility in selecting time slices that will be used, 
 #
-#   Note: In `run_decision_model_loop`, the full `horizon` is always used for
-# each optimization window. Initial conditions (generator status, storage SoC,
-# etc.) do NOT propagate between windows in the current implementation due to
-# bug in Sienna.
+#   Note: In `run_simulation`, the full `horizon` is always used for each
+# optimization window.
 
-# input variables parameters
-system_data_dir = "data/nem12/arrow"
-schedule_name = "schedule-1w"
+reference_trace = 4006
+poe = 10
+tyear = 2025
+file_format = "arrow"
+system_data_dir = joinpath(
+    @__DIR__, "../..", "NEM-reliability-suite", "data", "pisp-datasets",
+    "out-ref$reference_trace-poe$poe", file_format
+)
+schedule_name = "schedule-$tyear"
 ts_data_dir = joinpath(system_data_dir, schedule_name)
-scenario_name = 1
-horizon = Hour(48)
-interval = Hour(24)
+
+scenario = 1
+horizon = Hour(12)
+interval = Hour(6)
 
 # data and system
 data = SiennaNEM.get_data(system_data_dir, ts_data_dir)
@@ -49,7 +53,7 @@ SiennaNEM.add_ts!(
     sys, data;
     horizon=horizon,  # horizon of each time slice that will be used in the study
     interval=interval,  # interval within each time slice, not the resolution of the time series
-    scenario_name=scenario_name,  # scenario number
+    scenario=scenario,  # scenario number
 )
 
 # problem template

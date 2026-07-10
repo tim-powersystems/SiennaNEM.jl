@@ -29,6 +29,11 @@ sort!(df, [:ThermalFuels, :PrimeMovers, :tech, :count])
 #   21 │ RoofPV                       RoofPV                       RenewableNonDispatch  PrimeMovers.PVe = 21  missing                               12
 #   22 │ Wind                         Wind                         RenewableDispatch     PrimeMovers.WT = 22   missing                               10
 
+# # NOTE: for data pure from PISP:
+# cols = [:tech, :type]
+# df = combine(groupby(data["generator"], cols), nrow => :count)
+# sort!(df, [:tech, :type, :count])
+
 unique(data["generator"][data["generator"].n .> 1, :DataType])
 # 3-element Vector{DataType}:
 #  ThermalStandard

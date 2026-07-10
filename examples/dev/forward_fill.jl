@@ -3,8 +3,15 @@ using SiennaNEM
 using Dates
 
 # Load data
-system_data_dir = "data/nem12/arrow"
-ts_data_dir = joinpath(system_data_dir, "schedule-1w")
+reference_trace = 4006
+poe = 10
+tyear = 2025
+file_format = "arrow"
+system_data_dir = joinpath(
+    @__DIR__, "../..", "NEM-reliability-suite", "data", "pisp-datasets",
+    "out-ref$reference_trace-poe$poe", file_format
+)
+ts_data_dir = joinpath(system_data_dir, "schedule-$tyear")
 data = read_system_data(system_data_dir)
 read_ts_data!(data, ts_data_dir)
 
@@ -22,8 +29,8 @@ df_storage_emax_ts = data["storage_emax_ts"]
 df_storage_lmax_ts = data["storage_lmax_ts"]
 df_storage_n_ts = data["storage_n_ts"]
 df_storage_pmax_ts = data["storage_pmax_ts"]
-df_line_tmax_ts = data["line_tmax_ts"]
-df_line_tmin_ts = data["line_tmin_ts"]
+df_line_fwcap_ts = data["line_fwcap_ts"]
+df_line_rvcap_ts = data["line_rvcap_ts"]
 
 # NOTE:
 # Sienna doesn't support change of emax and lmax, we need to add that as extra constraints straight to JuMP data

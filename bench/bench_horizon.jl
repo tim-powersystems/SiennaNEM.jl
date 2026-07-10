@@ -10,8 +10,8 @@ using HiGHS
 """
     bench_horizon_setup(system_data_dir, ts_data_dir)
 
-Prepare system, template, and solver once.
-Returns (template_uc, sys, solver).
+Prepare system, template, and optimizer once.
+Returns (template_uc, sys, optimizer).
 """
 function bench_horizon_setup(system_data_dir::AbstractString, ts_data_dir::AbstractString)
     data = read_system_data(system_data_dir)
@@ -21,22 +21,22 @@ function bench_horizon_setup(system_data_dir::AbstractString, ts_data_dir::Abstr
     clean_ts_data!(data)
 
     template_uc = SiennaNEM.build_problem_base_uc()
-    solver = optimizer_with_attributes(HiGHS.Optimizer, "mip_rel_gap" => 0.01)
+    optimizer = optimizer_with_attributes(HiGHS.Optimizer, "mip_rel_gap" => 0.01)
 
     sys = create_system!(data)
 
-    add_ts!(sys, data, scenario_name=1)
-    return template_uc, sys, solver
+    add_ts!(sys, data, scenario=1)
+    return template_uc, sys, optimizer
 end
 
 
 """
-    bench_model(template_uc, sys, solver, horizon; samples=10, seconds=5)
+    bench_model(template_uc, sys, optimizer, horizon; samples=10, seconds=5)
 
 Benchmark creation of a DecisionModel (no build or solve).
 """
-function bench_model(template_uc, sys, solver, horizon; samples=10, seconds=5)
-    bm = @benchmarkable DecisionModel($template_uc, $sys; optimizer=$solver, horizon=$horizon) samples=samples seconds=seconds
+function bench_model(template_uc, sys, optimizer, horizon; samples=10, seconds=5)
+    bm = @benchmarkable DecisionModel($template_uc, $sys; optimizer=$optimizer, horizon=$horizon) samples=samples seconds=seconds
     return run(bm)
 end
 
@@ -74,7 +74,7 @@ function bench_horizon_all(system_data_dir::AbstractString, ts_data_dir::Abstrac
                            horizons=[Hour(6), Hour(12), Hour(24)],
                            samples=10, seconds=5)
 
-    template_uc, sys, solver = bench_horizon_setup(system_data_dir, ts_data_dir)
+    template_uc, sys, optimizer = bench_horizon_setup(system_data_dir, ts_data_dir)
 
     results = Dict{Int,Dict{String,Any}}()
     for h in horizons
@@ -82,10 +82,10 @@ function bench_horizon_all(system_data_dir::AbstractString, ts_data_dir::Abstrac
         println("Benchmarking horizon: $h")
 
         # model
-        model_res = bench_model(template_uc, sys, solver, h; samples=samples, seconds=seconds)
+        model_res = bench_model(template_uc, sys, optimizer, h; samples=samples, seconds=seconds)
 
         # build
-        problem = DecisionModel(template_uc, sys; optimizer=solver, horizon=h)
+        problem = DecisionModel(template_uc, sys; optimizer=optimizer, horizon=h)
         build_res = bench_build(problem; samples=samples, seconds=seconds)
 
         # solve

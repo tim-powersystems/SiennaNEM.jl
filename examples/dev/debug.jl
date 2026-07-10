@@ -1,7 +1,6 @@
 # debug ts
 using CSV
 using DataFrames
-using Revise
 
 include("../src/utils.jl")
 

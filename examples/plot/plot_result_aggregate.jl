@@ -4,16 +4,16 @@ using PlotlyJS
 bus_to_name = get_map_from_df(data["bus"], :id_bus, :name)
 
 # Create output directory for plots
-plots_dir = "examples/result/nem12/plots/$(schedule_name)/scenario-$(scenario_name)"
+plots_dir = "examples/result/nem12/plots/$(schedule_name)/scenario-$(scenario)"
 mkpath(plots_dir)
 
 # Define plot configurations: (data_key, id_map, title, ylabel)
 plot_staged_list = [
     # data_key, id_map, title, ylabel
     ("bus_gen_pg", bus_to_name, "Generation by Bus", "Power (MW)"),
-    ("bus_gen_pfr", bus_to_name, "Primary Frequency Response Reserve by Bus", "Reserve Capacity (MW)"),
+    ("bus_tgen_pfr", bus_to_name, "Primary Frequency Response Reserve by Bus", "Reserve Capacity (MW)"),
     ("area_gen_pg", area_to_name, "Generation by Area", "Power (MW)"),
-    ("area_gen_pfr", area_to_name, "Primary Frequency Response Reserve by Area", "Reserve Capacity (MW)"),
+    ("area_tgen_pfr", area_to_name, "Primary Frequency Response Reserve by Area", "Reserve Capacity (MW)"),
     ("bus_ess_e", bus_to_name, "Battery Energy by Bus", "Energy (MWh)"),
     ("bus_ess_ch", bus_to_name, "Battery Charging by Bus", "Power (MW)"),
     ("bus_ess_dch", bus_to_name, "Battery Discharging by Bus", "Power (MW)"),
@@ -26,6 +26,7 @@ plot_staged_list = [
 
 # Generate all plots
 for (data_key, id_map, title, ylabel) in plot_staged_list
+    println(data_key)
     p = plot_stacked(
         dfs_res["post"][data_key],
         id_map;
@@ -35,8 +36,18 @@ for (data_key, id_map, title, ylabel) in plot_staged_list
     )
     
     # Use same naming convention as CSV: prefix_category_name.extension
-    filename = "$(schedule_name)_scenario-$(scenario_name)_$(data_key).png"
+    filename = "$(schedule_name)_scenario-$(scenario)_$(data_key).png"
     filepath = joinpath(plots_dir, filename)
     savefig(p, filepath)
     println("✓ Saved: $filepath")
 end
+
+# plots_dir = "examples/result/studies/impact_of_horizon/plots/$(k)"
+# mkpath(plots_dir)
+# for (data_key, id_map, namecol, title, ylabel) in plot_staged_list
+#     # Use same naming convention as CSV: prefix_category_name.extension
+#     filename = "$(schedule_name)_scenario-$(scenario)_$(data_key).png"
+#     filepath = joinpath(plots_dir, filename)
+#     savefig(p, filepath)
+#     println("✓ Saved: $filepath")
+# end

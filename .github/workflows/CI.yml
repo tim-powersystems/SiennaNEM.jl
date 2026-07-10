@@ -27,7 +27,6 @@ jobs:
       matrix:
         version:
           - '1.11'
-          - 'pre'
         os:
           - ubuntu-latest
         arch:
@@ -36,54 +35,50 @@ jobs:
       # Checkout the main repo
       - uses: actions/checkout@v6
 
-      # Fetch nem12 data if secret is available
-      - name: Determine data mode
-        run: |
-          if [ -z "${{ secrets.NEM_SUITE_PAT }}" ]; then
-            echo "NEM_SUITE_PAT not available: running in FORK PR mode (skip nem12)"
-            echo "DATA_MODE=fork" >> $GITHUB_ENV
-          else
-            echo "NEM_SUITE_PAT available: running in FULL mode (fetch nem12)"
-            echo "DATA_MODE=full" >> $GITHUB_ENV
-          fi
-
-      - name: Checkout nem reliability suite (private)
-        if: ${{ env.DATA_MODE == 'full' }}
+      # Checkout NEM reliability suite to a subdirectory
+      - name: Checkout NEM reliability suite
         uses: actions/checkout@v6
         with:
           repository: ARPST-UniMelb/NEM-reliability-suite
-          token: ${{ secrets.NEM_SUITE_PAT }}
           path: NEM-reliability-suite
 
-      - name: Copy nem12 data
-        if: ${{ env.DATA_MODE == 'full' }}
+      # Create symlink to mimic local structure
+      - name: Setup data structure
         run: |
-          rm -rf ./data/nem12 || true
-          mkdir -p data/nem12/csv
-          mkdir -p data/nem12/arrow
-          cp -r NEM-reliability-suite/data/csv/* data/nem12/csv/
-          cp -r NEM-reliability-suite/data/arrow/* data/nem12/arrow/
-          echo "nem12 data copied successfully"
-
-      # Show mode in logs
-      - name: Show CI mode
-        run: |
-          echo "CI DATA MODE: $DATA_MODE"
+          mkdir -p ../
+          ln -s ${{ github.workspace }}/NEM-reliability-suite ${{ github.workspace }}/../NEM-reliability-suite
+          echo "Workspace: ${{ github.workspace }}"
+          echo "Parent directory contents:"
+          ls -la ../
+          echo "Symlink target:"
+          readlink ../NEM-reliability-suite || echo "Not a symlink"
+          echo "Contents via symlink:"
+          ls -la ../NEM-reliability-suite || echo "NEM-reliability-suite not found"
 
       # Setup Julia
-      - uses: julia-actions/setup-julia@v2
+      - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
 
       # Cache, build, and test
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
+
+      # Install specific package versions
+      - name: Install specific PowerSimulations and StorageSystemsSimulations commits
+        run: |
+          julia --project=. -e '
+            using Pkg
+            Pkg.add(url="https://github.com/NREL-Sienna/PowerSimulations.jl", rev="8683c998901b7943fe98aab506ce74ef3fc0f06c")
+            Pkg.add(url="https://github.com/yasirroni/StorageSystemsSimulations.jl", rev="dcd9c46071bc9abf511314dfdf85efaacf8f8cb8")
+          '
+
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
 
       # Upload coverage
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}

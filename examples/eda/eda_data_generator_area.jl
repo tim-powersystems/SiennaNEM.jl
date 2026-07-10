@@ -3,17 +3,13 @@ using PowerSystems
 const PSY = PowerSystems
 
 
-gen_to_bus = Dict(
-    row.id_gen => row.id_bus
-    for row in eachrow(data["generator"][!, [:id_gen, :id_bus]])
-)
-bus_to_area = Dict(
-    row.id_bus => row.id_area
-    for row in eachrow(data["bus"][!, [:id_bus, :id_area]])
-)
+gen_to_bus = SiennaNEM.get_map_from_df(data["generator"], :id_gen, :id_bus)
+bus_to_area = SiennaNEM.get_map_from_df(data["bus"], :id_bus, :id_area)
+bus_to_name = SiennaNEM.get_map_from_df(data["bus"], :id_bus, :name)
+
 gen_to_area = Dict(
-    id_gen => bus_to_area[gen_to_bus[id_gen]]
-    for id_gen in keys(gen_to_bus)
+    id_gen => bus_to_area[id_bus]
+    for (id_gen, id_bus) in gen_to_bus
 )
 
 data["generator"].id_area = [
@@ -41,30 +37,30 @@ using DataFrames
 # Get unique DataTypes available in each area
 area_to_datatypes = Dict{Int64, Vector{DataType}}()
 for row in eachrow(data["generator"])
-    area_id = row.id_area
+    id_area = row.id_area
     datatype = row.DataType
     
-    if !haskey(area_to_datatypes, area_id)
-        area_to_datatypes[area_id] = DataType[]
+    if !haskey(area_to_datatypes, id_area)
+        area_to_datatypes[id_area] = DataType[]
     end
     
-    if datatype ∉ area_to_datatypes[area_id]
-        push!(area_to_datatypes[area_id], datatype)
+    if datatype ∉ area_to_datatypes[id_area]
+        push!(area_to_datatypes[id_area], datatype)
     end
 end
 
 # Get unique DataTypes available in each bus
 bus_to_datatypes = Dict{Int64, Vector{DataType}}()
 for row in eachrow(data["generator"])
-    bus_id = row.id_bus
+    id_bus = row.id_bus
     datatype = row.DataType
     
-    if !haskey(bus_to_datatypes, bus_id)
-        bus_to_datatypes[bus_id] = DataType[]
+    if !haskey(bus_to_datatypes, id_bus)
+        bus_to_datatypes[id_bus] = DataType[]
     end
     
-    if datatype ∉ bus_to_datatypes[bus_id]
-        push!(bus_to_datatypes[bus_id], datatype)
+    if datatype ∉ bus_to_datatypes[id_bus]
+        push!(bus_to_datatypes[id_bus], datatype)
     end
 end
 
@@ -76,11 +72,11 @@ df_area_types = DataFrame(
     count = Int64[]
 )
 
-for area_id in sort(collect(keys(area_to_datatypes)))
-    area_name = get(area_to_name, area_id, "Area $area_id")
-    for dt in sort(area_to_datatypes[area_id], by=string)
-        count = sum((data["generator"].id_area .== area_id) .& (data["generator"].DataType .== dt))
-        push!(df_area_types, (id_area=area_id, area_name=area_name, DataType=dt, count=count))
+for id_area in sort(collect(keys(area_to_datatypes)))
+    area_name = get(area_to_name, id_area, "Area $id_area")
+    for dt in sort(area_to_datatypes[id_area], by=string)
+        count = sum((data["generator"].id_area .== id_area) .& (data["generator"].DataType .== dt))
+        push!(df_area_types, (id_area=id_area, area_name=area_name, DataType=dt, count=count))
     end
 end
 
@@ -91,11 +87,11 @@ df_bus_types = DataFrame(
     count = Int64[]
 )
 
-for bus_id in sort(collect(keys(bus_to_datatypes)))
-    bus_name = get(bus_to_name, bus_id, "Bus $bus_id")
-    for dt in sort(bus_to_datatypes[bus_id], by=string)
-        count = sum((data["generator"].id_bus .== bus_id) .& (data["generator"].DataType .== dt))
-        push!(df_bus_types, (id_bus=bus_id, bus_name=bus_name, DataType=dt, count=count))
+for id_bus in sort(collect(keys(bus_to_datatypes)))
+    bus_name = get(bus_to_name, id_bus, "Bus $id_bus")
+    for dt in sort(bus_to_datatypes[id_bus], by=string)
+        count = sum((data["generator"].id_bus .== id_bus) .& (data["generator"].DataType .== dt))
+        push!(df_bus_types, (id_bus=id_bus, bus_name=bus_name, DataType=dt, count=count))
     end
 end
 
@@ -187,18 +183,18 @@ df_max_gen_by_area = DataFrame(
     pmax = Float64[]
 )
 
-for area_id in sort(unique(data["generator"].id_area))
+for id_area in sort(unique(data["generator"].id_area))
     # Filter generators in this area
-    area_gens = data["generator"][data["generator"].id_area .== area_id, :]
+    area_gens = data["generator"][data["generator"].id_area .== id_area, :]
     
     # Find generator with maximum pmax
     max_idx = argmax(area_gens.pmax)
     max_gen = area_gens[max_idx, :]
     
-    area_name = get(area_to_name, area_id, "Area $area_id")
+    area_name = get(area_to_name, id_area, "Area $id_area")
     
     push!(df_max_gen_by_area, (
-        id_area = area_id,
+        id_area = id_area,
         area_name = area_name,
         id_gen = max_gen.id_gen,
         name = max_gen.name,
@@ -227,10 +223,10 @@ df_max_thermal_by_area = DataFrame(
     pmax = Float64[]
 )
 
-for area_id in sort(unique(data["generator"].id_area))
+for id_area in sort(unique(data["generator"].id_area))
     # Filter ThermalStandard generators in this area
     area_thermal_gens = data["generator"][
-        (data["generator"].id_area .== area_id) .& 
+        (data["generator"].id_area .== id_area) .& 
         (data["generator"].DataType .== PSY.ThermalStandard), 
         :
     ]
@@ -244,10 +240,10 @@ for area_id in sort(unique(data["generator"].id_area))
     max_idx = argmax(area_thermal_gens.pmax)
     max_gen = area_thermal_gens[max_idx, :]
     
-    area_name = get(area_to_name, area_id, "Area $area_id")
+    area_name = get(area_to_name, id_area, "Area $id_area")
     
     push!(df_max_thermal_by_area, (
-        id_area = area_id,
+        id_area = id_area,
         area_name = area_name,
         id_gen = max_gen.id_gen,
         name = max_gen.name,

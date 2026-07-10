@@ -18,7 +18,7 @@ function clean_ts_data!(data::Dict{String,Any})
     df_generator_ts_unique_id_gen = DataFrame(id_gen=unique_id_gen_ts)
     df_generator_ts_unique_id_gen = leftjoin(
         df_generator_ts_unique_id_gen,
-        df_generator[:, [:id_gen, :name, :tech, :DataType]], on=:id_gen
+        df_generator[:, [:id_gen, :name, :tech, :DataType]], on=:id_gen, order=:left
     )
     df_generator_ts_unique_id_gen = dropmissing(df_generator_ts_unique_id_gen, :name)
     unique_id_gen_ts = df_generator_ts_unique_id_gen[:, :id_gen]
@@ -34,7 +34,7 @@ Add time series data to the system.
 - `data`: A dictionary containing time series data and components.
 - `horizon`: The time horizon for the time series (optional).
 - `interval`: The interval between time steps (optional).
-- `scenario_name`: The scenario name or index (default: 1).
+- `scenario`: The scenario name or index (default: 1).
 
 # Modifies
 - `sys`: Adds time series data to the system.
@@ -44,13 +44,13 @@ function add_ts!(
     start_date=nothing,
     horizon=nothing,
     interval=Hour(1),
-    scenario_name=1
+    scenario=1
 )
     # NOTE: This is just a wrapper to use data instead of df
 
     # Get specific scenario
-    df_demand_ts = filter_value_from_df(data["demand_l_ts"], :scenario, scenario_name)
-    df_generator_ts = filter_value_from_df(data["generator_pmax_ts"], :scenario, scenario_name)
+    df_demand_ts = filter_value_from_df(data["demand_l_ts"], :scenario, scenario)
+    df_generator_ts = filter_value_from_df(data["generator_pmax_ts"], :scenario, scenario)
 
     # Get specific time slice
     if start_date !== nothing
@@ -89,10 +89,12 @@ function add_ts!(
     # NOTE:
     #   This is the main function to add time series to the system.
     #   Slicing the data should be done outside this function.
-    #   This function also didn't use groupbyd, the data should be already single scenario_name.
+    #   This function also didn't use groupbyd, the data should be already single scenario.
     #   The format of df_demand_ts and df_generator_ts should follow PISP.jl format:
     #       df_demand_ts: [:id_dem, :date, :value]
     #       df_generator_ts: [:id_gen, :date, :value]
+    # 
+    #   Data :value is in MW.
 
     # Add demand time series
     grouped_demand = groupbyd(df_demand_ts, :id_dem)
